@@ -129,6 +129,7 @@
   }
   .field{margin-bottom:16px;}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .row3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px;}
   input[type=text],input[type=email],input[type=tel],input[type=number]{
     width:100%;
     padding:11px 12px;
@@ -239,6 +240,7 @@
 
   @media (max-width:480px){
     .row2{grid-template-columns:1fr;}
+    .row3{grid-template-columns:1fr;}
     h1{font-size:22px;}
   }
 </style>
@@ -291,15 +293,23 @@
         <label for="f-address">Property street address</label>
         <input type="text" id="f-address" placeholder="123 Main St" required>
       </div>
-      <div class="row2">
+      <div class="row3">
         <div class="field">
           <label for="f-city">City</label>
           <input type="text" id="f-city" required>
         </div>
         <div class="field">
-          <label for="f-sqft">Square footage</label>
-          <input type="number" id="f-sqft" min="100" step="1" required>
+          <label for="f-state">State</label>
+          <input type="text" id="f-state" maxlength="2" placeholder="OH" style="text-transform:uppercase;" required>
         </div>
+        <div class="field">
+          <label for="f-zip">Zip</label>
+          <input type="text" id="f-zip" inputmode="numeric" pattern="[0-9]{5}" maxlength="5" required>
+        </div>
+      </div>
+      <div class="field">
+        <label for="f-sqft">Square footage</label>
+        <input type="number" id="f-sqft" min="100" step="1" required>
       </div>
 
       <fieldset>
@@ -352,7 +362,12 @@
 
 <script>
   // ---- CONFIG: set this after you deploy the Apps Script Web App ----
-  const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxC4gQgxZdC8cJYHRjyvQpyYAa3oEG_F6ESrRUKnzmp8OEVx7Q3rOyYQEN0dv9I45SwHQ/exec';
+  const WEB_APP_URL = 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+
+  // ---- CONFIG: optional — enables address autocomplete as the client types ----
+  // Get this from Google Cloud Console after enabling the "Places API".
+  // Leave as-is to skip autocomplete; the address field just works as a plain text field.
+  const GOOGLE_MAPS_API_KEY = 'PASTE_YOUR_GOOGLE_MAPS_API_KEY_HERE';
 
   const state = {
     selected: [] // { date, slotKey, dayLabel, slotLabel }
@@ -374,8 +389,46 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  // ---- Address autocomplete (only runs if a real API key is set above) ----
+  function loadAddressAutocomplete() {
+    if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY.indexOf('PASTE') === 0) return;
+    const script = document.createElement('script');
+    script.src = 'https://maps.googleapis.com/maps/api/js?key=' + GOOGLE_MAPS_API_KEY +
+      '&libraries=places&callback=initAddressAutocomplete';
+    script.async = true;
+    document.head.appendChild(script);
+  }
+
+  window.initAddressAutocomplete = function () {
+    const input = document.getElementById('f-address');
+    const autocomplete = new google.maps.places.Autocomplete(input, {
+      componentRestrictions: { country: 'us' },
+      fields: ['address_components'],
+      types: ['address']
+    });
+    autocomplete.addListener('place_changed', function () {
+      const place = autocomplete.getPlace();
+      if (!place.address_components) return;
+      let streetNumber = '', route = '', city = '', state = '', zip = '';
+      place.address_components.forEach(function (c) {
+        if (c.types.includes('street_number')) streetNumber = c.long_name;
+        if (c.types.includes('route')) route = c.long_name;
+        if (c.types.includes('locality')) city = c.long_name;
+        if (!city && c.types.includes('sublocality')) city = c.long_name;
+        if (c.types.includes('administrative_area_level_1')) state = c.short_name;
+        if (c.types.includes('postal_code')) zip = c.long_name;
+      });
+      input.value = (streetNumber + ' ' + route).trim();
+      if (city) document.getElementById('f-city').value = city;
+      if (state) document.getElementById('f-state').value = state;
+      if (zip) document.getElementById('f-zip').value = zip;
+    });
+  };
+
+  loadAddressAutocomplete();
+
   document.getElementById('to-step-2').addEventListener('click', () => {
-    const required = ['f-name', 'f-phone', 'f-email', 'f-address', 'f-city', 'f-sqft'];
+    const required = ['f-name', 'f-phone', 'f-email', 'f-address', 'f-city', 'f-state', 'f-zip', 'f-sqft'];
     for (const id of required) {
       const el = document.getElementById(id);
       if (!el.value.trim()) { el.focus(); return; }
@@ -470,8 +523,16 @@
       email: document.getElementById('f-email').value.trim(),
       realtorName: document.getElementById('f-realtor-name').value.trim(),
       realtorEmail: document.getElementById('f-realtor-email').value.trim(),
-      address: document.getElementById('f-address').value.trim(),
+      street: document.getElementById('f-address').value.trim(),
       city: document.getElementById('f-city').value.trim(),
+      state: document.getElementById('f-state').value.trim().toUpperCase(),
+      zip: document.getElementById('f-zip').value.trim(),
+      address: [
+        document.getElementById('f-address').value.trim(),
+        document.getElementById('f-city').value.trim() + ', ' +
+          document.getElementById('f-state').value.trim().toUpperCase() + ' ' +
+          document.getElementById('f-zip').value.trim()
+      ].join(', '),
       sqft: document.getElementById('f-sqft').value.trim(),
       services: Array.from(document.querySelectorAll('.svc:checked')).map(el => el.value),
       selectedSlots: state.selected.map(s => ({ date: s.date, slotKey: s.slotKey }))
