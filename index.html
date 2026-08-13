@@ -216,8 +216,8 @@
     font-family:'Source Sans Pro',sans-serif;
   }
 
-  .loading,.error{font-size:13px;color:var(--ink-soft);padding:10px 0;}
-  .error{color:#A33;}
+  .loading{font-size:15.5px;font-weight:600;color:var(--navy);padding:14px 0;letter-spacing:.01em;}
+  .error{font-size:13px;color:#A33;padding:10px 0;}
 
   /* confirmation */
   .confirm-wrap{text-align:center;padding:20px 10px 6px;}
@@ -330,7 +330,7 @@
         Select every time slot that could work for you across the days below —
         we'll confirm one and let you know within 24 hours.
       </p>
-      <div id="avail-loading" class="loading">Looking for open times...…</div>
+      <div id="avail-loading" class="loading">Loading open times…</div>
       <div id="avail-error" class="error" style="display:none;"></div>
       <div id="avail-days"></div>
 
@@ -362,7 +362,7 @@
 
 <script>
   // ---- CONFIG: set this after you deploy the Apps Script Web App ----
-  const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxC4gQgxZdC8cJYHRjyvQpyYAa3oEG_F6ESrRUKnzmp8OEVx7Q3rOyYQEN0dv9I45SwHQ/exec';
+  const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx2vfAihhZogHy4RDVCF7IuECNuS_0yBFGpu6mrpl9fr0nm-S3-2j8ClElPFmEwOvFG6A/exec';
 
   // ---- CONFIG: optional — enables address autocomplete as the client types ----
   // Get this from Google Cloud Console after enabling the "Places API".
